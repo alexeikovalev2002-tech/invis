@@ -5,11 +5,11 @@
 	"name": "Invis ESP",
 	"description": "Показывает белый хитбокс, ник и здоровье невидимых игроков в радиусе 100 блоков.",
 	"authors": [
-		"ТвоеИмя"
+		"YourName"
 	],
 	"contact": {
-		"homepage": "https://github.com/твой_ник/твой_репозиторий",
-		"sources": "https://github.com/твой_ник/твой_репозиторий"
+		"homepage": "https://github.com/alexeikoval ev2002-tech/invis",
+		"sources": "https://github.com/alexeikoval ev2002-tech/invis"
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/invis-esp/icon.png",
