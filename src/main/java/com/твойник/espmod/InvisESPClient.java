@@ -1,4 +1,4 @@
-package com.твойник.espmod;
+package com.example.espmod;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
