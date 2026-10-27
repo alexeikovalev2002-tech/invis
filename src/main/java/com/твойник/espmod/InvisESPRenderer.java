@@ -1,16 +1,17 @@
-package com.твойник.espmod;
+package com.example.espmod;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 
 public class InvisESPRenderer {
-    private static final double RANGE = 100.0D; // Радиус действия
-    private static final float[] WHITE = {1.0f, 1.0f, 1.0f, 1.0f};
+    private static final double RANGE = 100.0D;
 
     public static void render(WorldRenderContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
@@ -19,43 +20,35 @@ public class InvisESPRenderer {
         MatrixStack matrices = context.matrixStack();
         Vec3d cameraPos = context.camera().getPos();
         VertexConsumerProvider consumers = context.consumers();
+        if (matrices == null || consumers == null) return;
 
-        // Проходим по всем игрокам в мире
         for (PlayerEntity target : client.world.getPlayers()) {
-            // Пропускаем себя и игроков вне радиуса
             if (target == client.player || target.distanceTo(client.player) > RANGE) continue;
-            
-            // Нас интересуют только невидимые игроки
             if (!target.isInvisible()) continue;
 
             // 1. Отрисовка белого хитбокса
             Box box = target.getBoundingBox().offset(-cameraPos.x, -cameraPos.y, -cameraPos.z);
-            WorldRenderer.drawBox(matrices, consumers.getBuffer(RenderLayer.getLines()), box, 
-                                  WHITE[0], WHITE[1], WHITE[2], WHITE[3]);
-            matrices.pop();
+            VertexRendering.drawBox(matrices, consumers.getBuffer(RenderLayer.getLines()), box, 1.0f, 1.0f, 1.0f, 1.0f);
 
-            // 2. Отрисовка Ника и ХП
-            String name = target.getName().getString();
-            float health = target.getHealth();
-            String text = String.format("%s [%.1f❤]", name, health);
-            
-            // Позиционируем текст над головой
+            // 2. Отрисовка Ника и ХП над головой
             matrices.push();
             matrices.translate(target.getX() - cameraPos.x, target.getY() + target.getHeight() + 0.5 - cameraPos.y, target.getZ() - cameraPos.z);
             matrices.multiply(context.camera().getRotation());
-            matrices.scale(-0.025f, -0.025f, 0.025f); // Масштаб текста
+            matrices.scale(-0.025f, -0.025f, 0.025f);
 
+            String text = String.format("%s [%.1f❤]", target.getName().getString(), target.getHealth());
             Matrix4f matrix = matrices.peek().getPositionMatrix();
+            
             client.textRenderer.draw(
-                text,
-                0, 0, // Координаты (центрируем вручную при необходимости)
-                0xFFFFFFFF, // Белый цвет
-                false, // Без тени
+                Text.literal(text),
+                0, 0,
+                0xFFFFFFFF,
+                false,
                 matrix,
                 consumers,
-                TextRenderer.TextLayerType.SEE_THROUGH, // Видно сквозь стены
+                TextRenderer.TextLayerType.SEE_THROUGH,
                 0,
-                15728880 // Свет
+                15728880
             );
             matrices.pop();
         }
