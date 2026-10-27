@@ -1,6 +1,6 @@
 package com.example.espmod;
 
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.RenderLayer;
@@ -17,11 +17,11 @@ import org.joml.Matrix4f;
 public class InvisESPRenderer {
     private static final double RANGE = 100.0D;
 
-    public static void render(WorldRenderContext context) {
+    public static void render(LevelRenderContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null) return;
 
-        MatrixStack matrices = context.matrixStack();
+        MatrixStack matrices = context.poseStack();
         Vec3d cameraPos = context.camera().getPos();
         VertexConsumerProvider consumers = context.consumers();
         
@@ -31,14 +31,18 @@ public class InvisESPRenderer {
             if (target == client.player || target.distanceTo(client.player) > RANGE) continue;
             if (!target.isInvisible()) continue;
 
-            // 1. Отрисовка белого хитбокса
+            // 1. Белый хитбокс (Yarn: VertexRendering.drawBox и RenderLayer.getLines)
             Box box = target.getBoundingBox().offset(-cameraPos.x, -cameraPos.y, -cameraPos.z);
             VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());
             VertexRendering.drawBox(matrices, lines, box, 1.0f, 1.0f, 1.0f, 1.0f);
 
-            // 2. Отрисовка Ника и ХП над головой
+            // 2. Ник и ХП над головой
             matrices.push();
-            matrices.translate(target.getX() - cameraPos.x, target.getY() + target.getHeight() + 0.5 - cameraPos.y, target.getZ() - cameraPos.z);
+            matrices.translate(
+                target.getX() - cameraPos.x, 
+                target.getY() + target.getHeight() + 0.5 - cameraPos.y, 
+                target.getZ() - cameraPos.z
+            );
             matrices.multiply(context.camera().getRotation());
             matrices.scale(-0.025f, -0.025f, 0.025f);
 
