@@ -1,68 +1,62 @@
 package com.example.espmod;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.VertexRendering;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.VertexRendering;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.text.Text;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 
 public class InvisESPRenderer {
     private static final double RANGE = 100.0D;
 
-    public static void render(LevelRenderContext context) {
-        Minecraft client = Minecraft.getInstance();
-        if (client.player == null || client.level == null) return;
+    public static void render(WorldRenderContext context) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || client.world == null) return;
 
-        PoseStack poseStack = context.poseStack();
-        Vec3 cameraPos = context.camera().getPosition();
-        MultiBufferSource consumers = context.bufferSource();
-        if (poseStack == null || consumers == null) return;
+        MatrixStack matrices = context.matrixStack();
+        Vec3d cameraPos = context.camera().getPos();
+        VertexConsumerProvider consumers = context.consumers();
+        
+        if (matrices == null || consumers == null) return;
 
-        for (Player target : client.level.players()) {
+        for (PlayerEntity target : client.world.getPlayers()) {
             if (target == client.player || target.distanceTo(client.player) > RANGE) continue;
             if (!target.isInvisible()) continue;
 
-            // 1. Отрисовка белого хитбокса вокруг невидимого игрока
-            AABB box = target.getBoundingBox().move(-cameraPos.x, -cameraPos.y, -cameraPos.z);
-            VertexRendering.drawBox(
-                poseStack, 
-                consumers.getBuffer(RenderTypes.lines()), 
-                box, 
-                1.0f, 1.0f, 1.0f, 1.0f
-            );
+            // 1. Отрисовка белого хитбокса
+            Box box = target.getBoundingBox().offset(-cameraPos.x, -cameraPos.y, -cameraPos.z);
+            VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());
+            VertexRendering.drawBox(matrices, lines, box, 1.0f, 1.0f, 1.0f, 1.0f);
 
             // 2. Отрисовка Ника и ХП над головой
-            poseStack.pushPose();
-            poseStack.translate(
-                target.getX() - cameraPos.x, 
-                target.getY() + target.getBbHeight() + 0.5 - cameraPos.y, 
-                target.getZ() - cameraPos.z
-            );
-            poseStack.mulPose(context.camera().rotation());
-            poseStack.scale(-0.025f, -0.025f, 0.025f);
+            matrices.push();
+            matrices.translate(target.getX() - cameraPos.x, target.getY() + target.getHeight() + 0.5 - cameraPos.y, target.getZ() - cameraPos.z);
+            matrices.multiply(context.camera().getRotation());
+            matrices.scale(-0.025f, -0.025f, 0.025f);
 
             String text = String.format("%s [%.1f❤]", target.getName().getString(), target.getHealth());
-            Matrix4f matrix = poseStack.last().pose();
+            Matrix4f matrix = matrices.peek().getPositionMatrix();
             
-            client.font.drawInBatch(
-                Component.literal(text),
+            client.textRenderer.draw(
+                Text.literal(text),
                 0, 0,
                 0xFFFFFFFF,
                 false,
                 matrix,
                 consumers,
-                Font.DisplayMode.SEE_THROUGH,
+                TextRenderer.TextLayerType.SEE_THROUGH,
                 0,
                 15728880
             );
-            poseStack.popPose();
+            matrices.pop();
         }
     }
 }
